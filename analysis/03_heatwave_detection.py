@@ -12,34 +12,6 @@ from project_paths import PATHS as _OPEN_SOURCE_PATHS
 # -*- coding: utf-8 -*-
 """
 heatwave_detection_all_stations.py  (v2 — with diurnal cycle reconstruction)
-===========================================================================
-在 v1（城乡独立热浪判定）基础上新增：
-
-[v2 新增]
-· compute_fft_diurnal()     → 对任意子集的逐小时数据做 FFT 重构
-· analyze_single_station()  → 额外计算 annual / JJA / HW 三个时期的日循环
-· §7b reconstruct_period_diurnal()
-                            → 统一封装「切片 → FFT → 重构 → 存行」逻辑
-· 输出 station_diurnal_reconstructed.csv
-    每行 = 一个站点 × 一个时期
-    列   = pair_id, station_type, usaf, wban, period,
-           lon, lat, kg_code, kg_group, continent,
-           n_days, Tmean_fft, Tmax_fft, Tmin_fft,
-           Amp1..Amp4, Phase1..Phase4,
-           h00..h23  (FFT 重构温度，共 24 列)
-
-时期定义
---------
-annual      全年所有有效日（与主脚本 annual FFT 一致）
-JJA         本地月份 6/7/8 的全部有效日（warm_season）
-HW          JJA 中百分位法判定为热浪的日期
-NHW         JJA 中非热浪日期（JJA - HW）
-
-热浪判定：与 analysis_multiyear.py v5 完全一致
-  · ERA5 长气候态（优先）/ ISD 短期 P90（回退）
-  · P90 ± 7-day DOY 滑动窗口
-  · 连续 ≥ 3 天 = 热浪事件
-===========================================================================
 """
 
 import os
