@@ -10,59 +10,6 @@ if str(_OPEN_SOURCE_REPO_ROOT) not in _open_source_sys.path:
     _open_source_sys.path.insert(0, str(_OPEN_SOURCE_REPO_ROOT))
 from project_paths import PATHS as _OPEN_SOURCE_PATHS
 # -*- coding: utf-8 -*-
-"""
-
-热浪 / UHI 热暴露风险 (Heat Exposure Risk Index, HERI)
-
-heatwave_rr_isd.py  ── CPU 加速版
-══════════════════════════════════════════════════════════════════════════════
-热浪 / UHI 健康风险：基于 ISD 真实逐小时数据的城乡 Heat Exposure Risk Index 分析
-
-加速策略（工作站多核）
-──────────────────────
-  [A] HW 阈值计算：DOY 查找表（365 次 numpy 循环）替代 N_days 次 pandas 循环
-      原版: O(N_days) × pandas 布尔过滤 ≈ 3650 次/站
-      新版: O(365)    × numpy 切片       ≈  365 次/站  → ~10× 加速
-
-  [B] 热浪检测：numpy diff + 连续段扫描，替代 Python while 循环
-      基准测试：0.065 ms/站（原版 ~0.8 ms/站）→ ~12× 加速
-
-  [C] Bootstrap CI：全向量化 numpy（消除 Python for 循环）
-      预分配 (N_boot, N_yrs, max_days) 三维数组 → nanmean 单次 ufunc
-      原版: 1000 次 Python 循环/时期
-      新版: 1 次 numpy ufunc       → ~20–50× 加速
-
-  [D] 外层对站循环：joblib.Parallel（loky 后端）+ 动态 chunk
-      自动使用全部 CPU 核心（默认 cpu_count - 1）
-
-  [E] numba 可选加速（若工作站已安装 pip install numba）
-      @njit(parallel=True, cache=True) 自动向量化 HW 内层循环和 bootstrap
-      安装后无需修改代码，自动启用
-
-  [F] DOY 预计算：lru_cache 缓存 (month,day)→DOY 映射（最多 366 个唯一值）
-
-Köppen-Geiger 气候分区数据来源
-──────────────────────────────
-  Beck, H. E., McVicar, T. R., Vergopolan, N., Berg, A., Lutsko, N. J.,
-  Dufour, A., Zeng, Z., Jiang, X., van Dijk, A. I. J. M., & Miralles, D. G.
-  (2023). High-resolution (1 km) Köppen-Geiger maps for 1901–2099 based on
-  constrained CMIP6 projections. Scientific Data, 10, 724.
-  https://doi.org/10.1038/s41597-023-02549-6
-
-  字段说明：
-    kg_code        : 采样自 TIF 的 Köppen-Geiger 细分代码（如 "Cfb"）；
-                     TIF 采样失败时为 NaN（不再默认填 "Cfb"）。
-    kg_code_source : "tif"          → 成功从 KG_TIF 读取
-                     "lat_fallback" → TIF 读取失败，回退至纬度估算
-                     注意：lat_fallback 时 kg_code = NaN，kg_group 由
-                     纬度粗估得到，不应视为真实 Köppen 分类。
-    kg_group       : 首字母大类（A/B/C/D/E），用于查 β_heat；
-                     来源于 kg_code（TIF 成功）或 _lat2kg（fallback）。
-
-依赖：pip install pandas numpy scipy tqdm joblib rasterio
-可选：pip install numba   # 进一步加速 ~3-5×
-══════════════════════════════════════════════════════════════════════════════
-"""
 
 import os
 import warnings
