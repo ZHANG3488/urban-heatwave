@@ -16,18 +16,6 @@ labour_loss_final.py  (v3 — +KG climate zone integration)
 Compute diurnal asymmetry of urban-rural labour capacity loss
 based on output from analysis_multiyear.py  v5.
 
-v1:  Dunne (2013) / He (2022) models, dLC day/night, Fig1-5
-v2:  warm_season period, asymmetry_index, day_night_ratio,
-     PERIOD_COLOR, Fig6 (3-period comparison), Fig7 (heatmap),
-     period_comparison_stats.csv, results_summary.txt
-v3:  [+KG] Adapt to analysis_multiyear.py v5 output:
-       - INPUT_CSV / OUTPUT_DIR 路径更新至 v5 目录
-       - summary_kggroup.csv  (A/B/C/D/E 主分组)
-       - summary_kgcode.csv   (Cfa/Dfb 等细码, n>=5)
-       - save_results_summary() 新增 Part 8: KG 分层摘要
-       - 控制台补充 KG 分布统计
-       - 输出目录树更新
-
 Methods:
   Dunne et al. (2013):  LC = 100 - 25 * max(0, WBGT-25)^(2/3)
   He et al. (2022):     Workability = 0.1 + 0.9 / (1+(WBGT/w1)^w2)
