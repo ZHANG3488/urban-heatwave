@@ -1,26 +1,29 @@
-# Edit this single file when paths or runtime settings change.
+
+# Run analysis.py and plot.py from the repository root so that these
+
 paths:
-  unified_root: /home/yuxizhang/code/gzz/final_code/impact/final/code_era/Final_code/latest_full_analysis_plot_code/unified_outputs
+  # Repository root
+  unified_root: .
 
   # Raw/upstream inputs used only when running analysis.py
-  pair_csv: /home/yuxizhang/code/gzz/annual_ml_dataset_2024_new.csv
-  pair_fallback: /home/yuxizhang/code/gzz/annual_ml_dataset_2024_new.csv
-  station_metadata: /home/yuxizhang/code/gzz/all_station_analysis/Extract_Final_Integrated_2023.csv
-  isd_base_dir: /home/yuxizhang/isd_data
-  era5_station_dir: /home/yuxizhang/code/gzz/final_code/impact/final/other_result/era5_station_output_nc_only_fast/station_daily
-  koppen_geiger_tif: /home/yuxizhang/code/gzz/koppen_geiger_data/1991_2020/koppen_geiger_0p00833333.tif
-  continent_shapefile: /home/yuxizhang/code/gzz/all_station_analysis/World_Continents_-8107292174417139505/World_Continents.shp
-  building_volume_csv: /home/yuxizhang/code/gzz/all_station_analysis/stations_building_volume_100m.csv
+  pair_csv: data/annual_ml_dataset_2024_new.csv
+  pair_fallback: data/annual_ml_dataset_2024_new.csv
+  station_metadata: data/Extract_Final_Integrated_2023.csv
+  isd_base_dir: data/isd_data
+  era5_station_dir: data/era5_station_daily
+  koppen_geiger_tif: data/koppen_geiger/koppen_geiger_0p00833333.tif
+  continent_shapefile: data/continents/World_Continents.shp
+  building_volume_csv: data/stations_building_volume_100m.csv
 
-  # Outputs
-  analysis_output_dir: /home/yuxizhang/code/gzz/final_code/impact/final/code_era/Final_code/latest_full_analysis_plot_code/unified_outputs/analysis/main_multiyear
-  figure1_output_dir: /home/yuxizhang/code/gzz/final_code/impact/final/code_era/Final_code/latest_full_analysis_plot_code/unified_outputs/plot_data/fig1_n
+  # Outputs generated inside the repository
+  analysis_output_dir: analysis/main_multiyear
+  figure1_output_dir: plot_data/fig1_n
 
 analysis:
   years: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
   bootstrap_n: 1000
   random_seed: 42
-  n_workers: null          # null = use the script default
+  n_workers: null
   use_era5_climatology: true
   min_loyo_ref_years: 5
   building_volume_radius: 1000m
