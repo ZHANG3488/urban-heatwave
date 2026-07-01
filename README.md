@@ -219,7 +219,7 @@ No scientific model was intentionally simplified solely to produce the currently
 |---|---|
 | Figure 1 analysis | Available |
 | Figure 1 plotting | Available |
-| Selected Figure 1 supplementary figures | Available |
+| Selected supplementary figures | Available |
 | Remaining supplementary figures | Planned |
 | Figure 2 workflow | Planned |
 | Figure 3 workflow | Planned |
