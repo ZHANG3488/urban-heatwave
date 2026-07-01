@@ -6,70 +6,6 @@ analysis_multiyear.py  (v5 — KG Climate Zone Full Integration)
 ==============================================================
 Multi-year (2015-2024) UHI/UCI Diurnal Cycle Analysis.
 
-v2 修改内容（相比原版）：
-  [1] read_isd_lite()    → 同时解析 Field 6 露点温度 (dewpoint_C)
-  [2] clean_year_data()  → 同时对 dewpoint_C 做 QC + 线性插值
-  [3] compute_fft()      → 同时输出露点24小时均值曲线 hourly_dew
-  [4] main() rec 字典    → 追加 urban_dew_h00..h23 / rural_dew_h00..h23
-
-v3 新增（相比 v2）：
-  [5] get_absolute_hw_threshold()   → 按洲际返回固定绝对阈值
-  [6] detect_heatwave_absolute()    → 绝对阈值版热浪检测
-  [7] build_period_records()        → 将 period/FFT/rec 构建逻辑独立封装，
-                                      支持两种方法复用
-  [8] main() 循环内同时跑百分位 & 绝对阈值，各加 hw_method 列标记
-  [9] 按方法分 robustness_percentile/ robustness_absolute/ 子目录独立输出
-  [10] station_valid_years.csv      → 记录每站全年 & 暖季有效年份覆盖
-
-v4 新增（相比 v3）：
-  [11] build_period_records() 中新增 warm_season 时期
-       → 使用完整 JJA 暖季数据（不区分热浪/非热浪），
-         与 annual(平时) / heatwave(热浪) 构成三时期对比
-
-v5 新增（相比 v4）——KG 气候分区全面接入：
-  [12] build_period_records()
-       → rec 中新增 hne_ref_mode、hw_ref_mode 两个版本信息字段
-  [13] save_kggroup_robustness()
-       → 输出 kggroup_robustness_summary.csv（按 KG 主分组汇总）
-  [14] save_latgroup_robustness() 后
-       → main() robustness 输出段调用 save_kggroup_robustness()
-  [15] save_mediation_analysis()
-       → subset_dict 中循环追加 annual_kg_A/B/C/D/E 子样本
-  [16] save_mechanism_regressions()
-       → subsets 中追加 annual_kg_* 分层键值
-  [17] robustness_comparison.csv
-       → compare_cols 保证含 kg_code、kg_group
-  [18] station_threshold_summary.csv
-       → 输出时补写 hw_ref_mode 字段
-  [19] 终端输出说明
-       → 注明 KG 已作为主气候分组，lat_group 作为兼容性保留字段
-
-ERA5-MOD 新增（相比 v5）：
-  [20] USE_ERA5_CLIMATOLOGY 开关（默认 True）
-       → True  时用 ERA5 长期气候态估算热浪 DOY 阈值
-       → False 时回退至原始 ISD 短期 P90 估计
-  [21] ERA5_STATION_DIR / load_era5_tmax_series /
-       compute_hw_doy_thr_era5 / apply_doy_thr_to_index 四个 ERA5 工具
-  [22] process_single_pair() 中的 [ERA5-MOD] 替换段
-
-数据分层策略：
-┌──────────────────────────────────────────────────────────────────────┐
-│ 数据层        │ 月份范围  │ 用途                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│ 全年数据      │ 1-12月    │ annual FFT、UHI/UCI 分组、协变量           │
-│ 全年Tmax      │ 1-12月    │ HW 阈值计算（P90, ±7天窗口）               │
-│ 暖季数据      │ JJA(6-8月)│ warm_season / heatwave / non_heatwave FFT │
-└──────────────────────────────────────────────────────────────────────┘
-4.16新增
-保留所有年份
-
-统一重采样到 hourly
-
-只对小缺口插值
-
-FFT 阶段按小时覆盖度判定是否可用
-
-不要因为原生是 3-hourly 就删除
 """
 
 import os
@@ -325,8 +261,7 @@ WARM_SEASON_DAYS_EXPECTED = 92
 MIN_YEAR_VALID_FRAC      = 0.80
 FULL_YEAR_MIN_VALID_FRAC = 0.80
 
-# v5: 版本信息常量，写入每行记录，便于多版本溯源
-HNE_REF_MODE = "full_year_all_pairs"   # 热夜超值计算的参考口径
+HNE_REF_MODE = "full_year_all_pairs"   
 
 HW_REF_MODE = "ERA5_longterm_Tmax_P90_DOY_±7day_quantile_mapping_corrected"
 
@@ -2211,7 +2146,7 @@ def build_period_records(
 
 
 # ─────────────────────────────────────────────────────────────
-# 11. process_single_pair（v5：提取 KG 字段并传入 build_period_records）
+# 11. process_single_pair
 # ─────────────────────────────────────────────────────────────
 def process_single_pair(args):
     """处理单个站点对的所有逻辑，用于多进程调用。"""
@@ -2247,14 +2182,14 @@ def process_single_pair(args):
 
     if combined_u_all is None or combined_r_all is None:
         missing = []
-        if combined_u_all is None: missing.append("urban_full_year(城市全年数据有效率不足)")
-        if combined_r_all is None: missing.append("rural_full_year(乡村全年数据有效率不足)")
+        if combined_u_all is None: missing.append("urban_full_year(no enough data)")
+        if combined_r_all is None: missing.append("rural_full_year(no enough data)")
         error_info = {"pair_id": pair_id, "fail_step": "load_multiyear_station_ALL",
                       "missing_data": " & ".join(missing)}
         return records_out, threshold_out, station_year_out, hw_daily_out, error_info
 
-    # ── 2. 在内存中切分暖季数据 ──────────────────────────────────
-    # ── 2. 在内存中切分暖季数据：NH=JJA, SH=DJF ─────────────────────
+    # ── 2. ──────────────────────────────────
+    # ── 2. NH=JJA, SH=DJF ─────────────────────
     # Use the urban station latitude to define the pair-level warm season.
     # This keeps urban/rural paired dates consistent.
     pair_hemisphere = hemisphere_from_lat(lat_u)
@@ -2298,7 +2233,7 @@ def process_single_pair(args):
     combined_r_warm, valid_yrs_r_warm = slice_warm_season(combined_r_all, lat_u)
     has_warm = (combined_u_warm is not None and combined_r_warm is not None)
 
-    # ── 3. 收集站点有效年份信息 ──────────────────────────────────
+    # ── 3.  ──────────────────────────────────
     n_total = len(YEARS)
     for station_type, usaf_id, wban_id, yrs_all, yrs_warm in [
         ("urban", usaf_u, wban_u, valid_yrs_u_all,
@@ -2417,7 +2352,7 @@ def process_single_pair(args):
         error_info = {
             "pair_id": pair_id,
             "fail_step": "compute_hw_threshold_from_tmax",
-            "missing_data": "城市Tmax数据过少，无法计算热浪阈值(hw_thr_mean为NaN)"
+            "missing_data": "no enough data (hw_thr_mean is NaN)"
         }
         return records_out, threshold_out, station_year_out, hw_daily_out, error_info
 
@@ -2489,7 +2424,7 @@ def process_single_pair(args):
     ) if hw_mask_all.any() else np.nan
 
 
-    # ── v5：提取 KG 分区信息 ────────────────────────────────────
+    # ── v5： KG  ────────────────────────────────────
     try:
         kg_codes = extract_koppen_codes([avg_lon], [avg_lat])
         _kg_code = kg_codes[0] if kg_codes else np.nan
@@ -2571,14 +2506,14 @@ def process_single_pair(args):
         "final_nhw_days":                 len(nhw_dates_all),
 
         "hw_percentile":        HW_PERCENTILE,
-        "hw_ref_mode":          HW_REF_MODE,       # v5 新增
+        "hw_ref_mode":          HW_REF_MODE,       
         "n_valid_ref_days":     n_valid_ref_days,
         "n_hw_days_annual":     len(hw_dates_all),
         "n_nhw_days_annual":    len(nhw_dates_all),
         "n_hw_days_warm":       len(hw_dates_warm_pct),
         "n_nhw_days_warm":      len(nhw_dates_warm_pct),
-        "kg_code":              _kg_code,           # v5 新增
-        "kg_group":             _kg_group,          # v5 新增
+        "kg_code":              _kg_code,           # v5 
+        "kg_group":             _kg_group,          # v5 
         "continent":            continent,
         "valid_urban_years_all":  ",".join(map(str, valid_yrs_u_all)),
         "valid_rural_years_all":  ",".join(map(str, valid_yrs_r_all)),
@@ -2624,13 +2559,13 @@ def process_single_pair(args):
         valid_yrs_r_warm=valid_yrs_r_warm if has_warm else [],
         bv_u=bv_u, bv_r=bv_r, bv_delta=bv_delta,
         station_meta_vals=station_meta_vals,
-        # v5 新增：KG 字段传入
+        # v5 ：KG 
         kg_code=str(_kg_code) if isinstance(_kg_code, str) else "",
         kg_group_val=_kg_group,
         climate_zone_main=_climate_zone,
     )
 
-    # ── 方法 A：百分位阈值 ──────────────────────────────────────
+    # ── A： ──────────────────────────────────────
     recs_pct = build_period_records(
         **common_kwargs,
         hw_dates_warm=hw_dates_warm_pct,
@@ -2641,7 +2576,7 @@ def process_single_pair(args):
     if recs_pct:
         records_out.extend(recs_pct)
 
-    # ── 方法 B：绝对阈值 ────────────────────────────────────────
+    # ── 方法 B： ────────────────────────────────────────
     abs_thr = get_absolute_hw_threshold(continent)
     hw_mask_abs_all   = detect_heatwave_absolute(u_tmax_all, abs_thr)
     hw_dates_abs_all  = set(hw_mask_abs_all[hw_mask_abs_all].index.tolist())
@@ -2690,7 +2625,7 @@ def process_single_pair(args):
         error_info = {
             "pair_id": pair_id,
             "fail_step": "build_period_records / compute_fft",
-            "missing_data": "插值后仍存在缺失，FFT计算失败或未生成有效时段记录"
+            "missing_data": "missing"
         }
 
     return records_out, threshold_out, station_year_out, hw_daily_out, error_info
@@ -2720,7 +2655,7 @@ def main():
 
     print(f" Robustness   : percentile + absolute threshold (by continent)")
     print(f" Periods      : annual / warm_season / heatwave / non_heatwave")
-    print(f" Climate zone : Köppen-Geiger (主分组) + lat_group (兼容性保留字段)")
+    print(f" Climate zone : Köppen-Geiger (group) + lat_group (group)")
     print("=" * 78)
 
     ensure_dir(OUTPUT_DIR)
@@ -2818,7 +2753,7 @@ def main():
                     "missing_data": f"进程崩溃: {exc}"
                 })
 
-    # ── 汇总输出 ─────────────────────────────────────────────────
+    # ──  ─────────────────────────────────────────────────
     print(f"\n{'='*78}")
     print(f"Done: processed={processed}, skipped={skipped}")
 
@@ -2840,7 +2775,7 @@ def main():
     print(f"  Saved: {all_out}  (total rows={len(all_df)})")
 
     # ════════════════════════════════════════════════════════════════════
-    # [新增] 独立提取并保存每个站点的 FFT 参数 (Tmean, 第1/2谐波的 Amp 和 Phase)
+    # FFT (Tmean, 1/2 Amp Phase)
     # ════════════════════════════════════════════════════════════════════
     fft_cols = [
         "pair_id", "period", "hw_method", "data_source", "group",
@@ -2848,26 +2783,25 @@ def main():
         "urban_Amp1", "rural_Amp1", "urban_Phase1", "rural_Phase1",
         "urban_Amp2", "rural_Amp2", "urban_Phase2", "rural_Phase2"
     ]
-    # 确保提取的列在 all_df 中实际存在，防止 KeyError
     avail_fft_cols = [c for c in fft_cols if c in all_df.columns]
     
     if avail_fft_cols:
         fft_df = all_df[avail_fft_cols].copy()
         fft_out_path = os.path.join(OUTPUT_DIR, "station_fft_parameters.csv")
         fft_df.to_csv(fft_out_path, index=False)
-        print(f"  Saved: {fft_out_path}  (独立 FFT 参数文件)")
+        print(f"  Saved: {fft_out_path}  (FFT )")
     # ════════════════════════════════════════════════════════════════════
 
     dew_cols  = [c for c in all_df.columns if "_dew_h" in c]
     dew_cover = all_df[dew_cols].notna().mean().mean() if dew_cols else 0.0
     print(f"  Dewpoint columns: {len(dew_cols)}  coverage: {dew_cover:.1%}")
 
-    # ── 版本信息核验 ─────────────────────────────────────────────
+    # ── ────────────────────────────────────────────
     for vfield in ["hne_ref_mode", "hw_ref_mode"]:
         if vfield in all_df.columns:
             print(f"  {vfield}: {all_df[vfield].unique().tolist()}")
 
-    # ── v5：KG 分布统计 ──────────────────────────────────────────
+    # ── v5：KG  ──────────────────────────────────────────
     annual_all = all_df[
         (all_df["period"] == "annual") & (all_df["hw_method"] == "percentile")
     ]
@@ -2878,7 +2812,7 @@ def main():
             label = KG_GROUP_MAP.get(str(grp), grp)
             print(f"  {grp} ({label}): {cnt}")
 
-    # ── 按 hw_method 分别保存到子目录 ────────────────────────────
+    # ──  hw_method  ────────────────────────────
     for method in ["percentile", "absolute"]:
         sub_m = all_df[all_df["hw_method"] == method].copy()
         if sub_m.empty:
@@ -2903,7 +2837,7 @@ def main():
         save_nighttime_risk_outputs(sub_m, method_dir)
         save_bv_quartile_analysis(sub_m, method_dir)
         save_latgroup_robustness(sub_m, method_dir)
-        save_kggroup_robustness(sub_m, method_dir)      # v5 新增
+        save_kggroup_robustness(sub_m, method_dir)      # v5 
         save_mechanism_regressions(sub_m, method_dir)
         save_mediation_analysis(sub_m, method_dir)
 
@@ -2917,12 +2851,12 @@ def main():
             f"hw_abs_thr_mean={sub_m['hw_abs_threshold'].mean():.1f}"
         )
 
-    # ── 合并对比文件（v5：含 kg_code / kg_group）────────────────
+    # ── （v5： kg_code / kg_group）────────────────
     compare_cols = [
         "pair_id", "group", "continent", "lat_group",
-        "kg_code", "kg_group", "climate_zone_main",   # v5 新增
+        "kg_code", "kg_group", "climate_zone_main",   # v5 
         "hw_method", "hw_abs_threshold",
-        "hne_ref_mode", "hw_ref_mode",                # v5 新增
+        "hne_ref_mode", "hw_ref_mode",                # v5 
         "dTmean", "dAmp1", "dTx", "dTn",
         "dT_day_mean", "dT_night_mean",
         "delta_tropical_night_freq", "delta_hotnight_excess",
@@ -2935,7 +2869,7 @@ def main():
     annual_both.to_csv(robustness_compare_path, index=False)
     print(f"  Saved: robustness_comparison.csv  ({len(annual_both)} rows)")
 
-    # ── 阈值诊断表（v5：含 hw_ref_mode / kg 字段，已在子进程写入）
+    # 
     if threshold_rows:
         pd.DataFrame(threshold_rows).to_csv(
             os.path.join(OUTPUT_DIR, "station_threshold_summary.csv"), index=False
@@ -2963,7 +2897,7 @@ def main():
             "  Saved: daily_heatwave_flags.csv  "
             "[downstream unified HW flags; main flag = hw_flag_percentile_warm_season]"
         )
-    # ── 站点有效年份汇总 ──────────────────────────────────────────
+    # ── year sum ──────────────────────────────────────────
     if station_year_rows:
         station_yr_df = pd.DataFrame(station_year_rows)
         station_yr_df = station_yr_df.drop_duplicates(
@@ -2989,7 +2923,7 @@ def main():
                 f"100%: {(frac == 1.0).sum()}"
             )
 
-    # ── 数据来源核验 ──────────────────────────────────────────────
+    # ── source ──────────────────────────────────────────────
     print("\nData source verification:")
     for period in ["annual", "warm_season", "heatwave", "non_heatwave"]:
         for method in ["percentile", "absolute"]:
@@ -2999,7 +2933,7 @@ def main():
             src = sub["data_source"].unique().tolist() if "data_source" in sub.columns else ["?"]
             print(f"  {period:15s} [{method:10s}]: n={len(sub):>5d}, source={src}")
 
-    # ── 关键变量可用性检查 ────────────────────────────────────────
+    # ──  check variables ────────────────────────────────────────
     print("\nChecking key variable availability ...")
     check_cols = [
         "dAmp1", "dTx", "dTn", "log10_BV",
@@ -3007,8 +2941,8 @@ def main():
         "urban_dew_h12", "rural_dew_h12",
         "hw_method", "hw_abs_threshold",
          "hemisphere", "warm_season_label", "warm_season_months",
-        "kg_code", "kg_group", "climate_zone_main",   # v5 新增检查
-        "hne_ref_mode", "hw_ref_mode",                 # v5 新增检查
+        "kg_code", "kg_group", "climate_zone_main",  
+        "hne_ref_mode", "hw_ref_mode",               
     ]
     for c in check_cols:
         if c in all_df.columns:
@@ -3018,19 +2952,19 @@ def main():
     print(
         "Output structure (v5 + ERA5-MOD):\n"
         f"  {OUTPUT_DIR}/\n"
-        "  ├── all_pair_period_metrics.csv        ← 全量 + KG字段 + 版本字段\n"
-        "  ├── robustness_comparison.csv          ← 含 kg_code/kg_group/hne_ref_mode/hw_ref_mode\n"
-        "  ├── station_threshold_summary.csv      ← 含 hw_ref_mode/kg_code/kg_group\n"
+        "  ├── all_pair_period_metrics.csv        ← KG + version\n"
+        "  ├── robustness_comparison.csv          ←  kg_code/kg_group/hne_ref_mode/hw_ref_mode\n"
+        "  ├── station_threshold_summary.csv      ←  hw_ref_mode/kg_code/kg_group\n"
         "  ├── station_valid_years.csv\n"
         "  ├── skipped_pairs_log.csv\n"
         "  ├── robustness_percentile/\n"
         "  │   ├── all_pair_period_metrics.csv\n"
         "  │   ├── UHI_group_fft_results.csv\n"
         "  │   ├── UCI_group_fft_results.csv\n"
-        "  │   ├── kggroup_robustness_summary.csv  ← v5 新增（主分组 A-E + 细码）\n"
-        "  │   ├── latgroup_robustness_summary.csv ← 兼容性保留，主分组已改用KG\n"
-        "  │   ├── mechanism_regression_table.csv  ← 含 annual_kg_* 分层\n"
-        "  │   ├── mediation_BV_dAmp1_to_dTx_dTn.csv  ← 含 annual_kg_* 分层\n"
+        "  │   ├── kggroup_robustness_summary.csv  ← v5 A-E\n"
+        "  │   ├── latgroup_robustness_summary.csv ← KG\n"
+        "  │   ├── mechanism_regression_table.csv  ←  annual_kg_* \n"
+        "  │   ├── mediation_BV_dAmp1_to_dTx_dTn.csv  ←  annual_kg_* \n"
         "  │   └── ...\n"
         "  └── robustness_absolute/\n"
         "      └── （同上结构）\n"
