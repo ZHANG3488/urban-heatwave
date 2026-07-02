@@ -2,7 +2,7 @@
 
 This repository contains the analysis and plotting code associated with the manuscript:
 
-**Zhang et al.**
+**Zhang et al. Urban thermal damping redistributes heatwave exposure from day to night.**
 
 ## Repository status
 
@@ -50,19 +50,6 @@ Please cite the accompanying manuscript when using or referring to this reposito
 
 > Zhang, Y., et al. *Urban thermal damping redistributes heatwave exposure from day to night.* Manuscript under consideration.
 
-## Contact
-
-For questions, problems or suggestions concerning the code, methods or repository structure, please contact the authors:
-
-**Zhang et al.**
-
-When reporting an issue, please include:
-
-* the script name;
-* the repository version or commit;
-* the operating system and Python version;
-* the relevant error message;
-* the configuration or path setting involved.
 
 ## Disclaimer
 
