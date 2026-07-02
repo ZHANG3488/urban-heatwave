@@ -1,248 +1,82 @@
-# Global urban–rural heatwave analysis: Figure 1 workflow
-
-This repository currently provides the analysis and plotting workflow used to reproduce **Figure 1 and a selected set of supplementary figures** from the global urban–rural heatwave study.
-
-The repository is under active development. Code for the remaining main figures, supplementary figures, and additional analysis modules will be added in later releases.
-
-## Current release scope
-
-The current version includes:
-
-- the multiyear urban–rural temperature and dew-point analysis used by Figure 1;
-- canonical annual UHI/UCI classification;
-- heatwave and non-heatwave temperature metrics;
-- diurnal temperature reconstruction;
-- the Figure 1 plotting workflow;
-- selected supplementary plots directly associated with Figure 1.
-
-The current version does **not yet include the complete production workflow** for all figures in the manuscript.
-
-In particular, the following components are planned for future releases:
-
-- remaining supplementary figures;
-- Figure 2 and Figure 3 analysis and plotting workflows;
-- Figure 4 socioeconomic-burden workflow;
-- additional sensitivity, robustness, and attribution analyses;
-- complete end-to-end orchestration of all production scripts.
-
-## Repository structure
-
-```text
-config.yaml       Local paths and runtime settings
-analysis.py       Multiyear analysis used to prepare Figure 1 inputs
-plot.py           Plotting script for Figure 1 and selected supplements
-environment.yml   Conda environment
-README.md         Usage and release documentation
-LICENSE           Software licence
-```
-
-This intentionally simple structure is used for the current Figure 1 release. Both Python scripts read the same `config.yaml`, and analysis and plotting remain separate:
-
-1. `analysis.py` prepares the multiyear temperature-analysis outputs.
-2. `plot.py` reads prepared outputs and generates the currently released Figure 1 graphics.
-3. Users who already have the required prepared CSV files can run `plot.py` without rerunning `analysis.py`.
-
-## Planned full repository structure
-
-The complete manuscript codebase is planned to be organised as follows:
-
-```text
-.
-├── config.example.yaml
-├── environment.yml
-├── requirements.txt
-├── README.md
-├── LICENSE
-│
-├── analysis/
-│   ├── 01_main_multiyear_temperature.py
-│   ├── 02_labour_loss.py
-│   ├── 03_station_heatwave_detection.py
-│   ├── 04_heatwave_relative_risk.py
-│   ├── 05_cdh_hdh_building_energy.py
-│   ├── 06_hot_night_sleep_economic.py
-│   └── 07_sensitivity_analysis.py
-│
-├── plot/
-│   ├── fig1/
-│   │   └── plot_figure1.py
-│   ├── fig23/
-│   │   └── plot_figures2_3.py
-│   └── fig4/
-│       ├── prepare_figure4.py
-│       └── plot_figure4.py
-│
-├── workflow/
-│   ├── run_analysis.py
-│   ├── run_plot1.py
-│   ├── run_plot23.py
-│   ├── run_plot4.py
-│   └── run_all.py
-│
-├── tests/
-│   ├── test_annual_classification.py
-│   ├── test_matched_hw_nhw.py
-│   ├── test_pair_equal_weighting.py
-│   └── test_figure_outputs.py
-│
-├── test_data/
-│   └── small reproducibility dataset
-│
-└── outputs/
-    ├── analysis/
-    └── figures/
-```
-
-This is the planned target structure rather than the current release layout. The present Figure 1 package remains deliberately compact until the remaining analysis and plotting modules are fully checked and documented.
+# Urban heatwave
 
-## Figures included in the current simple release
+This repository contains the analysis and plotting code associated with the manuscript:
 
-The current `plot.py` script generates the following five PNG files:
+**Urban thermal damping redistributes heatwave exposure from day to night**
 
-```text
-plot_data/fig1_n/
-├── composite_delta_uhi_final_fianl_ver.png
-├── supplement_integrated_panels_bc.png
-├── supplement_period_specific_uhi_maps.png
-├── supplement_station_kg_distribution.png
-└── supplement_uhi_uci_pdf_navy_coral.png
-```
+**Zhang et al.**
 
-### Output descriptions
+## Repository status
 
-| File | Content |
-|---|---|
-| `composite_delta_uhi_final_fianl_ver.png` | Main Figure 1 composite showing the global urban–rural heatwave response and associated diurnal temperature contrasts. |
-| `supplement_integrated_panels_bc.png` | Integrated supplementary panels associated with the Figure 1 temperature-response analysis. |
-| `supplement_period_specific_uhi_maps.png` | Supplementary maps showing period-specific urban heat-island or urban cool-island patterns. |
-| `supplement_station_kg_distribution.png` | Distribution of the analysed stations or station pairs across Köppen–Geiger climate groups. |
-| `supplement_uhi_uci_pdf_navy_coral.png` | Probability-density comparison of UHI and UCI groups using the navy–coral colour scheme. |
+This repository is currently released as **Version 1.0**.
 
-The historical `fianl` spelling in
+The codebase is still under active development and will continue to be updated, reorganised and documented. The current release can be used as a reference for understanding the analysis workflow, scientific methods, data interfaces and figure-generation procedures used in the manuscript.
 
-```text
-composite_delta_uhi_final_fianl_ver.png
-```
+Please note that:
 
-is retained for compatibility with the archived manuscript workflow.
+* some scripts may be further refactored or renamed;
+* configuration and path handling may continue to improve;
+* documentation, testing and reproducibility support will be expanded;
+* future versions may simplify the workflow while preserving the scientific definitions and key numerical results;
+* the current release should therefore be treated as a reference version rather than a final software package.
 
-No other main or supplementary figures are generated by this simple release.
+## Scope
 
-## Required plotting inputs
+The repository includes code for:
 
-The current `plot.py` workflow reads two prepared files:
+* urban–rural station-pair processing;
+* meteorological quality control;
+* local-solar-time alignment;
+* hemisphere-aware warm-season analysis;
+* heatwave and non-heatwave classification;
+* two-harmonic reconstruction of diurnal temperature cycles;
+* annual UHI/UCI regime classification;
+* cooling-degree-hour calculations;
+* labour-capacity-loss calculations;
+* modelled sleep-loss calculations;
+* sensitivity analyses;
+* manuscript and supplementary figure preparation.
 
-```text
-analysis/main_multiyear/robustness_percentile/all_pair_period_metrics.csv
-analysis/heatwave_flags/station_diurnal_reconstructed.csv
-```
+The raw observational and reanalysis datasets are not distributed with this repository. Users must configure their own local data paths before running the workflow.
 
-The plotting script does not read the unrelated labour, sleep-loss, mortality, CDH, economic-loss, or Figure 2–4 datasets.
+## Version 1.0
 
-## Installation
+Version 1.0 provides the current manuscript-oriented analysis and plotting workflow.
 
-Create the Conda environment:
+At this stage:
 
-```bash
-conda env create -f environment.yml
-conda activate urban-heat-fig1
-```
+* the scientific workflow is available for inspection and reference;
+* scripts retain the interfaces used during manuscript production;
+* path configuration has been separated from the core analysis where possible;
+* additional modularisation, validation and documentation are planned.
 
-If PyYAML is not already available:
+A more detailed description of the workflow, script order, required inputs and generated outputs is provided in the version-specific documentation included in this repository.
 
-```bash
-python -m pip install pyyaml
-```
+## Use and citation
 
-Geospatial dependencies such as Cartopy, GeoPandas and Rasterio are generally easier to install through Conda.
+Researchers are welcome to inspect and refer to this code for academic and reproducibility purposes.
 
-## Configuration
+Because the repository is still being updated, users should record the exact version or commit used in their work.
 
-All local paths and runtime options are defined in:
+Please cite the accompanying manuscript when using or referring to this repository:
 
-```text
-config.yaml
-```
+> Zhang, Y., et al. *Urban thermal damping redistributes heatwave exposure from day to night.* Manuscript under consideration.
 
-The public configuration should use project-relative paths rather than personal absolute paths. Run the scripts from the repository root so that these paths resolve correctly.
+## Contact
 
-Example:
+For questions, problems or suggestions concerning the code, methods or repository structure, please contact the authors:
 
-```yaml
-paths:
-  unified_root: .
-  analysis_output_dir: analysis/main_multiyear
-  figure1_output_dir: plot_data/fig1_n
-```
+**Zhang et al.**
 
-## Run the plotting workflow
+When reporting an issue, please include:
 
-If the two prepared CSV files already exist, run:
+* the script name;
+* the repository version or commit;
+* the operating system and Python version;
+* the relevant error message;
+* the configuration or path setting involved.
 
-```bash
-python -u plot.py
-```
+## Disclaimer
 
-The five released figures will be written to the output directory defined in `config.yaml`.
-
-## Run the analysis workflow
-
-Run the analysis only when the upstream Figure 1 data need to be regenerated:
-
-```bash
-python -u analysis.py
-```
-
-The analysis requires the original station, ERA5, geographic and metadata inputs listed in `config.yaml`.
-
-The current `analysis.py` prepares the multiyear pair-level analysis used by Figure 1. Some other prepared inputs used by `plot.py`, particularly the station-level reconstructed heatwave curves, may originate from production modules that are not yet included in this partial release.
-
-For reproduction of only the currently released figures, users may use the prepared test dataset or previously generated CSV inputs.
-
-## Scientific definitions retained
-
-The released workflow preserves the production definitions relevant to Figure 1:
-
-- Canonical UHI/UCI classification is based on the annual urban–rural temperature contrast.
-- Heatwaves retain the aligned daily maximum-temperature percentile definition.
-- The original ERA5-to-ISD threshold-correction pathway is retained.
-- Northern and Southern Hemisphere warm seasons retain the original JJA/DJF boundary handling.
-- Diurnal temperature metrics retain the 24-hour and 12-hour harmonic reconstruction.
-- Heatwave and non-heatwave comparisons use matched station-pair records where required.
-- Urban–rural quantities retain the sign convention `urban minus rural`.
-
-No scientific model was intentionally simplified solely to produce the currently released images.
-
-## Development roadmap
-
-| Component | Status |
-|---|---|
-| Figure 1 analysis | Available |
-| Figure 1 plotting | Available |
-| Selected supplementary figures | Available |
-| Remaining supplementary figures | Planned |
-| Figure 2 workflow | Planned |
-| Figure 3 workflow | Planned |
-| Figure 4 socioeconomic-burden workflow | Planned |
-| Additional robustness and sensitivity analyses | Planned |
-| Complete manuscript-level workflow | Planned |
-
-Version changes will be documented in release notes or a changelog as the repository expands.
-
-## Data availability
-
-Large, licensed, or restricted input datasets are not distributed with this repository.
-
-Users must obtain the relevant data from their original providers and comply with the corresponding licences and terms of use.
-
-A small test dataset may be distributed separately for software validation. It is intended to verify that the scripts execute successfully and is not a substitute for the full scientific dataset.
-
-## Software licence
-
-The software is distributed under the licence provided in the repository `LICENSE` file.
-
-## Citation
-
-Formal citation metadata will be added after the associated manuscript and archived software record are finalised.
-
-Until then, users should cite the repository release or version tag used in their analysis.
+This repository is provided for scientific reference and reproducibility. The code is still under development and may change in future releases. Users should independently verify outputs before applying the workflow to new datasets or using the results in operational or decision-making contexts.
+::: 
