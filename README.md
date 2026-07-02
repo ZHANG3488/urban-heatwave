@@ -2,8 +2,6 @@
 
 This repository contains the analysis and plotting code associated with the manuscript:
 
-**Urban thermal damping redistributes heatwave exposure from day to night**
-
 **Zhang et al.**
 
 ## Repository status
