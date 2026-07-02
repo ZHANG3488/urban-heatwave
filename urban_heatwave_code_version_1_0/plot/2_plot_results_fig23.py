@@ -3,21 +3,6 @@
 """
 plot_results_fig23.py
 ===============
-读取 analysis_multiyear.py 生成的 all_pair_period_metrics.csv，
-输出三张图及统计表格。
-
-图1: 散点图 ΔAmp vs ΔT_mn (颜色=ΔT_x)
-图2: UHI/UCI 三面板日循环（UHI曲线、UCI曲线、ΔT_a对比）
-图3: LCZ 分类三面板（Compact / Open / 强度对比）
-表1: 统计汇总表（含显著性星号）→ CSV + TXT
-图6: 全球站点地图 + UHI/UCI 代表性日循环 inset
-图7: [新增] 全球站点地图，红=曾出现热浪，蓝=未出现热浪（不区分城市农村）
-图8: [新增] 热浪 vs 非热浪时期日循环对比（不区分城市农村），含 std 色带
-
-Method-freeze final patch:
-- Canonical UHI/UCI is always the upstream annual classification.
-- NHW/HW sign-state transitions are explicitly labelled as period-specific
-  dTx diagnostics and are not used to redefine canonical groups.
 """
 
 # ====================== 1. 标准库导入 ======================
