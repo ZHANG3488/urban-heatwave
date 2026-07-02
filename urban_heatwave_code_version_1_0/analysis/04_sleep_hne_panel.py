@@ -2,64 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 compute_hne_panel.py  (v11-econ — HNE + 睡眠损失 + 经济损失估算)
-==================================================================================
-在 v10-econ 基础上新增：
-
-  [ECON-1] 工资弹性法（主要方法，sleep loss 渠道）
-           来源：Gibson & Shrader (2018), Rev. Econ. Stat.
-                 Costa-Font, Fleche & Pagan (2024), J. Health Econ.
-           公式：ΔProductivity% = (β_wage / 60) × |ΔSleep_min|
-           参数：短期 β = 1.1%/h，长期 β = 5.0%/h，小时弹性 β = 4.2%/h
-           输出：econ_loss_pct_short / _long / _hourly
-
-  [ECON-2] 出勤效率法（辅助，sleep loss 渠道）
-           来源：Hafner et al. (2016), RAND Health Q.
-           输出：econ_loss_pct_present
-
-  [ECON-3] USD 转换（sleep loss → USD）
-           输出：econ_loss_usd_sleep
-
-  [ECON-4] 劳动力加总
-           公式：Total_loss_USD = mean(loss_usd) × n_workers × working_days
-
-  [ECON-5] ★ 直接高温劳动损失（新增）
-           来源：Graff Zivin & Neidell (2014), JPE 122(5):1391-1432
-                 Seppanen et al. (2006)（室内劳动者综合）
-           公式：heat_loss_pct = α × max(Tmax - Tref, 0)
-                 α=0.5 %/°C（全劳动力加权），Tref=29°C
-           输出：heat_loss_pct, econ_loss_usd_heat
-
-  [ECON-6] ★ 合并总损失（新增）
-           公式：total_loss_pct = econ_loss_pct_short + heat_loss_pct
-                 total_loss_usd = econ_loss_usd_sleep + econ_loss_usd_heat
-           输出：total_loss_pct, total_loss_usd
-
-  [ERA5]   ERA5 1991-2020 气候态阈值（HW + HNE 双渠道替换 ISD 短期估计）
-           USE_ERA5_CLIMATOLOGY = True  ← 本文件默认开启
-
-新增输出列（逐日面板和配对差值均含）：
-  ─ sleep loss 渠道 ─────────────────────────────────────────────────
-  sleep_loss_min           夜间睡眠损失（min/night，负值=减少）
-  econ_loss_pct_short      短期工资弹性生产力损失（%）
-  econ_loss_pct_long       长期工资弹性生产力损失（%）
-  econ_loss_pct_hourly     小时工资弹性生产力损失（%）
-  econ_loss_pct_present    出勤效率法生产力损失（%）
-  econ_loss_usd_sleep      sleep渠道 USD/人/工作日
-
-  ─ 直接高温渠道 ────────────────────────────────────────────────────
-  heat_loss_pct            直接高温生产力损失（%）
-  econ_loss_usd_heat       直接高温 USD/人/工作日
-
-  ─ 合并总损失 ──────────────────────────────────────────────────────
-  total_loss_pct           合并生产力损失（%）
-  total_loss_usd           合并 USD/人/工作日
-
-新增经济损失输出文件（economic_loss/ 目录）：
-  total_annual_loss_sleep_loss_{pooled|loyo}.csv
-  total_annual_loss_direct_heat_{pooled|loyo}.csv
-  total_annual_loss_total_{pooled|loyo}.csv
-  total_annual_loss_ALL_{pooled|loyo}.csv    ← 三类拼合宽表（论文对比用）
-==================================================================================
 """
 
 import os
