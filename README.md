@@ -23,16 +23,6 @@ Please note that:
 The repository includes code for:
 
 * urban–rural station-pair processing;
-* meteorological quality control;
-* local-solar-time alignment;
-* hemisphere-aware warm-season analysis;
-* heatwave and non-heatwave classification;
-* two-harmonic reconstruction of diurnal temperature cycles;
-* annual UHI/UCI regime classification;
-* cooling-degree-hour calculations;
-* labour-capacity-loss calculations;
-* modelled sleep-loss calculations;
-* sensitivity analyses;
 * manuscript and supplementary figure preparation.
 
 The raw observational and reanalysis datasets are not distributed with this repository. Users must configure their own local data paths before running the workflow.
